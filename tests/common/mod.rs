@@ -7,6 +7,7 @@ use bitcoin::{
     taproot::{LeafVersion, TaprootBuilder},
     Address, Amount, Network, OutPoint, Script, ScriptBuf, Transaction, TxIn, TxOut, Witness,
 };
+use confidential_script::settings::Settings;
 use confidential_script::{
     api::{
         encryption_middleware::encryption_middleware, verify_and_sign_handler, ActualSpentOutput,
@@ -26,6 +27,10 @@ pub fn create_master_key_pair() -> (SecretKey, PublicKey) {
 }
 
 pub fn setup_app_state(with_key: bool) -> Arc<AppState> {
+    setup_app_state_with_settings(with_key, None)
+}
+
+pub fn setup_app_state_with_settings(with_key: bool, settings: Option<Settings>) -> Arc<AppState> {
     let master_key_pair = Arc::new(OnceCell::new());
 
     if with_key {
@@ -36,8 +41,14 @@ pub fn setup_app_state(with_key: bool) -> Arc<AppState> {
             .unwrap();
     }
 
+    let arc_settings = Arc::new(OnceCell::new());
+
+    if let Some(settings) = settings {
+        arc_settings.set(settings).unwrap();
+    }
+
     Arc::new(AppState {
-        settings: Arc::new(OnceCell::new()),
+        settings: arc_settings,
         master_key_pair,
     })
 }
@@ -81,8 +92,7 @@ pub fn create_test_transaction_single_input() -> Transaction {
     }
 }
 
-pub fn create_verify_and_sign_single_input_single_leaf_request(
-) -> (VerifyAndSignRequest, Amount, Address) {
+pub fn create_emulated_single_input_test_transaction() -> (Transaction, Amount, Address) {
     let secp = Secp256k1::new();
     let internal_secret = SecretKey::from_slice(&[2u8; 32]).unwrap();
     let internal_key = UntweakedPublicKey::from(internal_secret.public_key(&secp));
@@ -114,6 +124,14 @@ pub fn create_verify_and_sign_single_input_single_leaf_request(
     emulated_tx.input[0].witness = witness;
 
     let value = Amount::from_sat(100_000);
+
+    (emulated_tx, value, actual_address)
+}
+
+pub fn create_verify_and_sign_single_input_single_leaf_request(
+) -> (VerifyAndSignRequest, Amount, Address) {
+    let (emulated_tx, value, actual_address) = create_emulated_single_input_test_transaction();
+
     let request = VerifyAndSignRequest {
         input_index: 0,
         emulated_tx_to: hex::encode(serialize(&emulated_tx)),

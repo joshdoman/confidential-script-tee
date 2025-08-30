@@ -1,6 +1,7 @@
 use bitcoin::secp256k1::ecdh;
 use bitcoin::secp256k1::{Secp256k1, SecretKey};
 use confidential_script::api::encryption_middleware::{decrypt_data, encrypt_data, CLIENT_HEADER};
+use confidential_script::api::VerifyAndSignResponse;
 
 mod common;
 
@@ -45,7 +46,7 @@ async fn secure_verify_and_sign() {
     // Decrypt response
     let encrypted_response = res.bytes().await.unwrap();
     let decrypted_response = decrypt_data(&encrypted_response, &shared_secret).unwrap();
-    let response_body = serde_json::from_slice(&decrypted_response).unwrap();
+    let response_body: VerifyAndSignResponse = serde_json::from_slice(&decrypted_response).unwrap();
 
     validate_single_input_single_leaf_response(response_body, value, actual_address);
 }

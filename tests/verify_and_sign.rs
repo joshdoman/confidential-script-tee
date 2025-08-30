@@ -1,10 +1,11 @@
 mod common;
 
-use bitcoin::consensus::serialize;
-use bitcoin::ScriptBuf;
+use bitcoin::{consensus::serialize, Amount, ScriptBuf, TxOut};
 use common::*;
-use confidential_script::api::ActualSpentOutput;
-use confidential_script::api::VerifyAndSignRequest;
+use confidential_script::{
+    api::{ActualSpentOutput, VerifyAndSignRequest},
+    settings::Settings,
+};
 
 #[tokio::test]
 async fn verify_and_sign_single_input_single_leaf_request() {
@@ -237,5 +238,91 @@ async fn verify_and_sign_not_script_path_spend() {
     assert_eq!(
         res.text().await.unwrap(),
         "Unable to sign: Input is not a script path spend (missing taproot control block)"
+    );
+}
+
+#[tokio::test]
+async fn verify_and_sign_exceeds_default_max_weight() {
+    let state = setup_app_state(true);
+    let addr = spawn_app(state).await;
+
+    let (mut emulated_tx, value, actual_address) = create_emulated_single_input_test_transaction();
+
+    emulated_tx.output = vec![
+        TxOut {
+            value: Amount::from_sat(1),
+            script_pubkey: ScriptBuf::new(),
+        };
+        115_000
+    ];
+
+    let request = VerifyAndSignRequest {
+        input_index: 0,
+        emulated_tx_to: hex::encode(serialize(&emulated_tx)),
+        actual_spent_outputs: vec![ActualSpentOutput {
+            value: value.to_sat(),
+            script_pubkey: hex::encode(actual_address.script_pubkey()),
+        }],
+        backup_merkle_root: None,
+    };
+
+    let client = reqwest::Client::new();
+    let res = client
+        .post(format!("http://{}/verify-and-sign", addr))
+        .json(&request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::BAD_REQUEST);
+    assert_eq!(
+        res.text().await.unwrap(),
+        "Unable to sign: Exceeds maximum allowed transaction weight"
+    );
+}
+
+#[tokio::test]
+async fn verify_and_sign_exceeds_set_max_weight() {
+    let settings = Settings {
+        max_weight: Some(200),
+        key_id: "".to_string(),
+        blockhash: "".to_string(),
+    };
+
+    let state = setup_app_state_with_settings(true, Some(settings));
+    let addr = spawn_app(state).await;
+
+    let (mut emulated_tx, value, actual_address) = create_emulated_single_input_test_transaction();
+
+    emulated_tx.output = vec![
+        TxOut {
+            value: Amount::from_sat(1),
+            script_pubkey: ScriptBuf::new(),
+        };
+        100
+    ];
+
+    let request = VerifyAndSignRequest {
+        input_index: 0,
+        emulated_tx_to: hex::encode(serialize(&emulated_tx)),
+        actual_spent_outputs: vec![ActualSpentOutput {
+            value: value.to_sat(),
+            script_pubkey: hex::encode(actual_address.script_pubkey()),
+        }],
+        backup_merkle_root: None,
+    };
+
+    let client = reqwest::Client::new();
+    let res = client
+        .post(format!("http://{}/verify-and-sign", addr))
+        .json(&request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::BAD_REQUEST);
+    assert_eq!(
+        res.text().await.unwrap(),
+        "Unable to sign: Exceeds maximum allowed transaction weight"
     );
 }

@@ -3,8 +3,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json as AxumJson},
 };
-use bitcoin::{hashes::Hash, Amount, ScriptBuf, TapNodeHash, TxOut};
-use confidential_script_lib::{verify_and_sign, DefaultVerifier};
+use bitcoin::{hashes::Hash, Amount, ScriptBuf, TapNodeHash, TxOut, Weight};
+use confidential_script_lib::{verify_and_sign, Error, Verifier};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -28,6 +28,49 @@ pub struct ActualSpentOutput {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VerifyAndSignResponse {
     pub signed_transaction: String,
+}
+
+struct KernelVerifier {
+    max_weight: u64,
+}
+
+impl Verifier for KernelVerifier {
+    fn verify(
+        &self,
+        script_pubkey: &[u8],
+        amount: Option<i64>,
+        tx_to: &[u8],
+        input_index: u32,
+        spent_outputs: &[TxOut],
+        tx_weight: Weight,
+    ) -> Result<(), Error> {
+        if tx_weight.to_wu() > self.max_weight {
+            return Err(Error::ExceedsMaxWeight);
+        }
+
+        let mut outputs = Vec::new();
+        for txout in spent_outputs {
+            let amount = txout
+                .value
+                .to_signed()
+                .map_err(Error::InvalidAmount)?
+                .to_sat();
+            let script = bitcoinkernel::ScriptPubkey::try_from(txout.script_pubkey.as_bytes())
+                .map_err(|e| Error::VerificationFailed(e.to_string()))?;
+            outputs.push(bitcoinkernel::TxOut::new(&script, amount));
+        }
+
+        let script_pubkey = &bitcoinkernel::ScriptPubkey::try_from(script_pubkey)
+            .map_err(|e| Error::VerificationFailed(e.to_string()))?;
+
+        let tx_to = &bitcoinkernel::Transaction::try_from(tx_to)
+            .map_err(|e| Error::VerificationFailed(e.to_string()))?;
+
+        bitcoinkernel::verify(script_pubkey, amount, tx_to, input_index, None, &outputs)
+            .map_err(|e| Error::VerificationFailed(e.to_string()))?;
+
+        Ok(())
+    }
 }
 
 /// Handler to verify an emulated Bitcoin script and sign the corresponding transaction
@@ -105,10 +148,17 @@ pub async fn verify_and_sign_handler(
         actual_spent_outputs.push(tx_out);
     }
 
+    let max_weight = state
+        .settings
+        .get()
+        .and_then(|settings| settings.max_weight)
+        .unwrap_or(Weight::MAX_BLOCK.to_wu());
+
+    let verifier = KernelVerifier { max_weight };
+
     // Call verify_and_sign
-    // TODO: Ensure transaction does not exceed `max_weight`
     let signed_tx = match verify_and_sign(
-        &DefaultVerifier,
+        &verifier,
         payload.input_index,
         &emulated_tx_bytes,
         &actual_spent_outputs,
