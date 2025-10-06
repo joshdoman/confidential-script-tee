@@ -1,22 +1,21 @@
 use anyhow::Result;
 use axum::{
+    Router,
     extract::DefaultBodyLimit,
     middleware,
     routing::{get, post},
-    Router,
 };
 use bitcoin::secp256k1::{PublicKey, SecretKey};
+use confidential_script_wire::Settings;
 use std::{env, net::SocketAddr, sync::Arc};
 use tokio::sync::OnceCell;
 
 pub mod api;
-pub mod settings;
 
 use api::{
     encryption_middleware, get_public_key_handler, get_settings_handler, health_handler,
     setup_handler, verify_and_sign_handler,
 };
-use settings::Settings;
 
 // The payload size limit (4 MB)
 pub const MAX_PAYLOAD_SIZE: usize = 4 * 1024 * 1024;

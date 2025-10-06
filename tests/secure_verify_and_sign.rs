@@ -1,7 +1,5 @@
-use bitcoin::secp256k1::ecdh;
-use bitcoin::secp256k1::{Secp256k1, SecretKey};
-use confidential_script::api::encryption_middleware::{decrypt_data, encrypt_data, CLIENT_HEADER};
-use confidential_script::api::VerifyAndSignResponse;
+use bitcoin::secp256k1::{Secp256k1, SecretKey, ecdh};
+use confidential_script_wire::{CLIENT_HEADER, VerifyAndSignResponse, decrypt, encrypt};
 
 mod common;
 
@@ -28,7 +26,7 @@ async fn secure_verify_and_sign() {
 
     // Encrypt payload
     let payload_json = serde_json::to_vec(&request_payload).unwrap();
-    let encrypted_payload = encrypt_data(&payload_json, &shared_secret).unwrap();
+    let encrypted_payload = encrypt(&payload_json, &shared_secret).unwrap();
 
     let client = reqwest::Client::new();
     let res = client
@@ -44,7 +42,7 @@ async fn secure_verify_and_sign() {
 
     // Decrypt response
     let encrypted_response = res.bytes().await.unwrap();
-    let decrypted_response = decrypt_data(&encrypted_response, &shared_secret).unwrap();
+    let decrypted_response = decrypt(&encrypted_response, &shared_secret).unwrap();
     let response_body: VerifyAndSignResponse = serde_json::from_slice(&decrypted_response).unwrap();
 
     validate_single_input_single_leaf_response(response_body, spent_output);

@@ -1,29 +1,54 @@
 [package]
 name = "confidential-script"
 version = "0.1.0"
-edition = "2021"
+description = "Implementation of Confidential Script in an AWS Nitro Enclave"
+keywords = [ "bitcoin", "script", "kernel", "emulation", "tee" ]
+readme = "README.md"
+
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[workspace]
+members = [".", "crates/*"]
+
+[workspace.package]
+authors = ["Joshua Doman <joshsdoman@gmail.com>"]
+license = "CC0-1.0"
+homepage = "https://github.com/joshdoman/confidential-script-tee"
+repository = "https://github.com/joshdoman/confidential-script-tee"
+edition = "2024"
+rust-version = "1.85.0"
+
+[workspace.dependencies]
+anyhow = "1.0"
+bitcoin = { version = "0.32.7", features = ["serde"] }
+hkdf = "0.12.4"
+sha2 = "0.10"
 
 [dependencies]
-axum = { version = "0.7", features = ["macros"] }
-tokio = { version = "1", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+anyhow.workspace = true
 aws-config = { version = "1.1" }
 aws-sdk-kms = { version = "1.15" }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-anyhow = "1.0"
+axum = { version = "0.7", features = ["macros"] }
+bitcoinkernel = "0.0.23"
+bitcoin.workspace = true
+confidential-script-lib = "0.3.0"
+confidential-script-wire = { version = "0.1.0", path = "crates/confidential-script-wire" }
+hex = "0.4.3"
+hkdf.workspace = true
 http = "1.1.0"
 p256 = { version = "0.13", features = ["pkcs8"] }
-sha2 = "0.10"
-hex = "0.4.3"
-confidential-script-lib = "0.3.0"
-bitcoinkernel = "0.0.23"
-bitcoin = { version = "0.32.7", features = ["serde"] }
 rand = "0.9.2"
-chacha20poly1305 = "0.10.1"
-hkdf = "0.12.4"
+serde_json = "1.0"
+sha2.workspace = true
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
-reqwest = { version = "0.12", features = ["json"] }
 base64 = "0.22.1"
+reqwest = { version = "0.12", features = ["json"] }

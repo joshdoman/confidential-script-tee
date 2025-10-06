@@ -1,20 +1,17 @@
-use axum::{extract::DefaultBodyLimit, middleware, routing::post, Router};
+use axum::{Router, extract::DefaultBodyLimit, middleware, routing::post};
 use bitcoin::{
-    consensus::{deserialize, encode::serialize},
+    Amount, Network, OutPoint, Script, ScriptBuf, Transaction, TxIn, TxOut, Witness,
+    consensus::encode::serialize,
     key::UntweakedPublicKey,
     opcodes,
     secp256k1::{PublicKey, Secp256k1, SecretKey},
     taproot::{LeafVersion, TaprootBuilder},
-    Amount, Network, OutPoint, Script, ScriptBuf, Transaction, TxIn, TxOut, Witness,
 };
-use confidential_script::settings::Settings;
 use confidential_script::{
-    api::{
-        encryption_middleware::encryption_middleware, verify_and_sign_handler,
-        VerifyAndSignRequest, VerifyAndSignResponse,
-    },
     AppState, MAX_PAYLOAD_SIZE,
+    api::{encryption_middleware::encryption_middleware, verify_and_sign_handler},
 };
+use confidential_script_wire::{Settings, VerifyAndSignRequest, VerifyAndSignResponse};
 use std::collections::HashMap;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{net::TcpListener, sync::OnceCell};
@@ -35,9 +32,7 @@ pub fn setup_app_state_with_settings(with_key: bool, settings: Option<Settings>)
     let master_key_pair = Arc::new(OnceCell::new());
 
     if with_key {
-        master_key_pair
-            .set(create_master_key_pair())
-            .unwrap();
+        master_key_pair.set(create_master_key_pair()).unwrap();
     }
 
     let arc_settings = Arc::new(OnceCell::new());
@@ -152,9 +147,6 @@ pub fn validate_single_input_single_leaf_response(
     response: VerifyAndSignResponse,
     spent_output: TxOut,
 ) {
-    let signed_tx_bytes = hex::decode(response.signed_transaction).unwrap();
-    let actual_tx: Transaction = deserialize(&signed_tx_bytes).unwrap();
-
     let amount = spent_output.value.to_signed().unwrap().to_sat();
     let script =
         bitcoinkernel::ScriptPubkey::try_from(spent_output.script_pubkey.as_bytes()).unwrap();
@@ -163,12 +155,12 @@ pub fn validate_single_input_single_leaf_response(
     let verify_result = bitcoinkernel::verify(
         &bitcoinkernel::ScriptPubkey::try_from(spent_output.script_pubkey.as_bytes()).unwrap(),
         Some(amount),
-        &bitcoinkernel::Transaction::try_from(serialize(&actual_tx).as_slice()).unwrap(),
+        &bitcoinkernel::Transaction::try_from(serialize(&response.signed_tx).as_slice()).unwrap(),
         0,
         None,
         &actual_outputs,
     );
 
     assert!(verify_result.is_ok());
-    assert_eq!(actual_tx.input[0].witness.len(), 1);
+    assert_eq!(response.signed_tx.input[0].witness.len(), 1);
 }

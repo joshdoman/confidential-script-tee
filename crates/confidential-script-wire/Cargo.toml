@@ -1,0 +1,19 @@
+[package]
+name = "confidential-script-wire"
+version = "0.1.0"
+description = "Library for interacting with Confidential Script TEE over REST API"
+
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+bitcoin.workspace = true
+chacha20poly1305 = "0.10.1"
+hkdf.workspace = true
+serde = { version = "1.0", features = ["derive"] }
+sha2.workspace = true

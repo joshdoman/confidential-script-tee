@@ -1,17 +1,18 @@
 use aws_config::BehaviorVersion;
-use aws_sdk_kms::{primitives::Blob, types::KeyAgreementAlgorithmSpec, Client as KmsClient};
+use aws_sdk_kms::{Client as KmsClient, primitives::Blob, types::KeyAgreementAlgorithmSpec};
 use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Json as AxumJson},
 };
 use bitcoin::secp256k1::{PublicKey as Secp256k1PublicKey, Secp256k1, SecretKey};
+use confidential_script_wire::Settings;
 use hkdf::Hkdf;
-use p256::{pkcs8::EncodePublicKey, PublicKey as P256PublicKey};
+use p256::{PublicKey as P256PublicKey, pkcs8::EncodePublicKey};
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
-use crate::{settings::Settings, AppState};
+use crate::AppState;
 
 /// Handler to generate a shared secret and store it as a secp256k1 key pair.
 pub async fn setup_handler(
@@ -33,27 +34,8 @@ pub async fn setup_handler(
     }
     let kms_client = KmsClient::from_conf(kms_config_builder.build());
 
-    // Decode and validate the blockhash
-    let blockhash_bytes = match hex::decode(&payload.blockhash) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            tracing::error!("Failed to decode blockhash: {}", e);
-            return (StatusCode::BAD_REQUEST, "Invalid blockhash encoding.").into_response();
-        }
-    };
-
-    if blockhash_bytes.len() != 32 {
-        return (
-            StatusCode::BAD_REQUEST,
-            "Blockhash must be exactly 32 bytes.",
-        )
-            .into_response();
-    }
-
-    let blockhash: [u8; 32] = blockhash_bytes.try_into().unwrap();
-
     // Generate the P-256 NUMS key with the provided blockhash
-    let p256_nums_key = generate_p256_nums_key(&blockhash);
+    let p256_nums_key = generate_p256_nums_key(payload.blockhash.as_ref());
     let p256_key_der_bytes = match p256_nums_key.to_public_key_der() {
         Ok(der) => der.as_bytes().to_vec(),
         Err(e) => {
@@ -85,7 +67,7 @@ pub async fn setup_handler(
     let shared_secret = match shared_secret_output.shared_secret {
         Some(blob) => blob.into_inner(),
         None => {
-            return (StatusCode::INTERNAL_SERVER_ERROR, "KMS returned no secret.").into_response()
+            return (StatusCode::INTERNAL_SERVER_ERROR, "KMS returned no secret.").into_response();
         }
     };
 

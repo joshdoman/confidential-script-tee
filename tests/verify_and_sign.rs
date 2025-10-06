@@ -1,8 +1,8 @@
 mod common;
 
-use bitcoin::{Amount, ScriptBuf, TxOut};
+use bitcoin::{Amount, BlockHash, ScriptBuf, TxOut, hashes::Hash};
 use common::*;
-use confidential_script::{api::VerifyAndSignRequest, settings::Settings};
+use confidential_script_wire::{Settings, VerifyAndSignRequest};
 use std::collections::HashMap;
 
 #[tokio::test]
@@ -86,7 +86,7 @@ async fn verify_and_sign_exceeds_set_max_weight() {
     let settings = Settings {
         max_weight: Some(200),
         key_id: "".to_string(),
-        blockhash: "".to_string(),
+        blockhash: BlockHash::all_zeros(),
     };
 
     let state = setup_app_state_with_settings(true, Some(settings));

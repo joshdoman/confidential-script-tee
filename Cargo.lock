@@ -817,15 +817,14 @@ dependencies = [
  "base64 0.22.1",
  "bitcoin",
  "bitcoinkernel",
- "chacha20poly1305",
  "confidential-script-lib",
+ "confidential-script-wire",
  "hex",
  "hkdf",
  "http 1.3.1",
  "p256",
  "rand",
  "reqwest",
- "serde",
  "serde_json",
  "sha2",
  "tokio",
@@ -842,6 +841,18 @@ dependencies = [
  "bitcoin",
  "hmac",
  "num-bigint",
+ "sha2",
+]
+
+[[package]]
+name = "confidential-script-wire"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bitcoin",
+ "chacha20poly1305",
+ "hkdf",
+ "serde",
  "sha2",
 ]
 

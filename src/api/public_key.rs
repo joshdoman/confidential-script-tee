@@ -3,16 +3,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json as AxumJson},
 };
-use bitcoin::secp256k1::PublicKey;
-use serde::{Deserialize, Serialize};
+use confidential_script_wire::GetPublicKeyResponse;
 use std::sync::Arc;
 
 use crate::AppState;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetPublicKeyResponse {
-    pub public_key: PublicKey,
-}
 
 /// Handler to get the public key of the generated secp256k1 key pair.
 pub async fn get_public_key_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {

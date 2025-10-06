@@ -3,26 +3,14 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json as AxumJson},
 };
-use bitcoin::{consensus, ScriptBuf, TapNodeHash, Transaction, TxOut, Weight};
-use confidential_script_lib::{verify_and_sign, Error, Verifier};
+use bitcoin::{ScriptBuf, TxOut, Weight, consensus};
+use confidential_script_lib::{Error, Verifier, verify_and_sign};
+use confidential_script_wire::{VerifyAndSignRequest, VerifyAndSignResponse};
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::AppState;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VerifyAndSignRequest {
-    pub emulated_tx_to: Transaction,
-    pub actual_spent_outputs: Vec<TxOut>,
-    pub backup_merkle_roots: HashMap<usize, TapNodeHash>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VerifyAndSignResponse {
-    pub signed_transaction: String,
-}
 
 struct KernelVerifier;
 
@@ -112,11 +100,7 @@ pub async fn verify_and_sign_handler(
         }
     };
 
-    // Serialize the signed transaction and return the response
-    let signed_tx_bytes = bitcoin::consensus::encode::serialize(&signed_tx);
-    let response = VerifyAndSignResponse {
-        signed_transaction: hex::encode(signed_tx_bytes),
-    };
+    let response = VerifyAndSignResponse { signed_tx };
 
     tracing::info!("Successfully verified and signed transaction");
     (StatusCode::OK, AxumJson(response)).into_response()

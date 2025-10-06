@@ -1,25 +1,18 @@
 use anyhow::Result;
 use axum::{
-    body::{to_bytes, Body},
+    Json,
+    body::{Body, to_bytes},
     extract::State,
     http::{Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
-    Json,
 };
-use bitcoin::secp256k1::{ecdh, PublicKey};
-use chacha20poly1305::{
-    aead::{Aead, AeadCore, KeyInit, OsRng},
-    ChaCha20Poly1305, Key, Nonce,
-};
-use hkdf::Hkdf;
+use bitcoin::secp256k1::{PublicKey, ecdh};
+use confidential_script_wire::{CLIENT_HEADER, decrypt, encrypt};
 use serde_json::json;
-use sha2::Sha256;
 use std::sync::Arc;
 
 use crate::AppState;
-
-pub const CLIENT_HEADER: &str = "X-Client-Public-Key";
 
 #[derive(Debug)]
 pub struct MiddlewareError {
@@ -99,7 +92,7 @@ pub async fn encryption_middleware(
         )
     })?;
 
-    let decrypted_body = decrypt_data(&encrypted_body, &shared_secret).map_err(|e| {
+    let decrypted_body = decrypt(&encrypted_body, &shared_secret).map_err(|e| {
         MiddlewareError::new(StatusCode::BAD_REQUEST, format!("Decryption failed: {}", e))
     })?;
 
@@ -118,7 +111,7 @@ pub async fn encryption_middleware(
         )
     })?;
 
-    let encrypted_response = encrypt_data(&response_body, &shared_secret).map_err(|e| {
+    let encrypted_response = encrypt(&response_body, &shared_secret).map_err(|e| {
         MiddlewareError::new(
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Encryption failed: {}", e),
@@ -129,75 +122,4 @@ pub async fn encryption_middleware(
     *response.body_mut() = Body::from(encrypted_response);
 
     Ok(response)
-}
-
-pub fn encrypt_data(data: &[u8], shared_secret: &[u8]) -> Result<Vec<u8>> {
-    let key = derive_key_from_shared_secret(shared_secret);
-    let cipher = ChaCha20Poly1305::new(&key);
-    let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
-
-    let ciphertext = cipher
-        .encrypt(&nonce, data)
-        .map_err(|_| anyhow::anyhow!("Encryption failed"))?;
-
-    // Prepend nonce to ciphertext
-    let mut result = nonce.to_vec();
-    result.extend_from_slice(&ciphertext);
-    Ok(result)
-}
-
-pub fn decrypt_data(encrypted_data: &[u8], shared_secret: &[u8]) -> Result<Vec<u8>> {
-    if encrypted_data.len() < 12 {
-        return Err(anyhow::anyhow!("Encrypted data too short"));
-    }
-
-    let key = derive_key_from_shared_secret(shared_secret);
-    let cipher = ChaCha20Poly1305::new(&key);
-
-    // Extract nonce and ciphertext
-    let (nonce_bytes, ciphertext) = encrypted_data.split_at(12);
-    let nonce = Nonce::from_slice(nonce_bytes);
-
-    cipher
-        .decrypt(nonce, ciphertext)
-        .map_err(|_| anyhow::anyhow!("Decryption failed"))
-}
-
-fn derive_key_from_shared_secret(shared_secret: &[u8]) -> Key {
-    let salt = Some(b"confidential-script-salt".as_slice());
-    let (_, hkdf) = Hkdf::<Sha256>::extract(salt, shared_secret);
-
-    let mut key = [0u8; 32];
-    hkdf.expand(b"Middleware encryption key", &mut key)
-        .expect("32-byte output is a valid length for HKDF-SHA256");
-    Key::from(key)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_encrypt_decrypt_roundtrip() {
-        let shared_secret = vec![42u8; 32];
-        let original_data = b"This is a secret message that needs to be encrypted.";
-
-        let encrypted_data = encrypt_data(original_data, &shared_secret).unwrap();
-        let decrypted_data = decrypt_data(&encrypted_data, &shared_secret).unwrap();
-
-        assert_ne!(original_data, encrypted_data.as_slice());
-        assert_eq!(original_data, decrypted_data.as_slice());
-    }
-
-    #[test]
-    fn test_decryption_with_wrong_key_fails() {
-        let correct_shared_secret = vec![42u8; 32];
-        let wrong_shared_secret = vec![99u8; 32];
-        let original_data = b"Another secret message.";
-
-        let encrypted_data = encrypt_data(original_data, &correct_shared_secret).unwrap();
-        let decryption_result = decrypt_data(&encrypted_data, &wrong_shared_secret);
-
-        assert!(decryption_result.is_err());
-    }
 }
