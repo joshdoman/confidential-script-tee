@@ -5,16 +5,17 @@ use bitcoin::{
     opcodes,
     secp256k1::{PublicKey, Secp256k1, SecretKey},
     taproot::{LeafVersion, TaprootBuilder},
-    Address, Amount, Network, OutPoint, Script, ScriptBuf, Transaction, TxIn, TxOut, Witness,
+    Amount, Network, OutPoint, Script, ScriptBuf, Transaction, TxIn, TxOut, Witness,
 };
 use confidential_script::settings::Settings;
 use confidential_script::{
     api::{
-        encryption_middleware::encryption_middleware, verify_and_sign_handler, ActualSpentOutput,
+        encryption_middleware::encryption_middleware, verify_and_sign_handler,
         VerifyAndSignRequest, VerifyAndSignResponse,
     },
     AppState,
 };
+use std::collections::HashMap;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{net::TcpListener, sync::OnceCell};
 
@@ -92,7 +93,7 @@ pub fn create_test_transaction_single_input() -> Transaction {
     }
 }
 
-pub fn create_emulated_single_input_test_transaction() -> (Transaction, Amount, Address) {
+pub fn create_emulated_single_input_test_transaction() -> (Transaction, TxOut) {
     let secp = Secp256k1::new();
     let internal_secret = SecretKey::from_slice(&[2u8; 32]).unwrap();
     let internal_key = UntweakedPublicKey::from(internal_secret.public_key(&secp));
@@ -124,47 +125,41 @@ pub fn create_emulated_single_input_test_transaction() -> (Transaction, Amount, 
     emulated_tx.input[0].witness = witness;
 
     let value = Amount::from_sat(100_000);
-
-    (emulated_tx, value, actual_address)
-}
-
-pub fn create_verify_and_sign_single_input_single_leaf_request(
-) -> (VerifyAndSignRequest, Amount, Address) {
-    let (emulated_tx, value, actual_address) = create_emulated_single_input_test_transaction();
-
-    let request = VerifyAndSignRequest {
-        input_index: 0,
-        emulated_tx_to: hex::encode(serialize(&emulated_tx)),
-        actual_spent_outputs: vec![ActualSpentOutput {
-            value: value.to_sat(),
-            script_pubkey: hex::encode(actual_address.script_pubkey()),
-        }],
-        backup_merkle_root: None,
-    };
-
-    (request, value, actual_address)
-}
-
-pub fn validate_single_input_single_leaf_response(
-    response: VerifyAndSignResponse,
-    value: Amount,
-    actual_address: Address,
-) {
-    let signed_tx_bytes = hex::decode(response.signed_transaction).unwrap();
-    let actual_tx: Transaction = deserialize(&signed_tx_bytes).unwrap();
-
-    let txout = TxOut {
+    let spent_output = TxOut {
         value,
         script_pubkey: actual_address.script_pubkey(),
     };
 
-    let amount = txout.value.to_signed().unwrap().to_sat();
-    let script = bitcoinkernel::ScriptPubkey::try_from(txout.script_pubkey.as_bytes()).unwrap();
+    (emulated_tx, spent_output)
+}
+
+pub fn create_verify_and_sign_single_input_single_leaf_request() -> (VerifyAndSignRequest, TxOut) {
+    let (emulated_tx, spent_output) = create_emulated_single_input_test_transaction();
+
+    let request = VerifyAndSignRequest {
+        emulated_tx_to: emulated_tx,
+        actual_spent_outputs: vec![spent_output.clone()],
+        backup_merkle_roots: HashMap::new(),
+    };
+
+    (request, spent_output)
+}
+
+pub fn validate_single_input_single_leaf_response(
+    response: VerifyAndSignResponse,
+    spent_output: TxOut,
+) {
+    let signed_tx_bytes = hex::decode(response.signed_transaction).unwrap();
+    let actual_tx: Transaction = deserialize(&signed_tx_bytes).unwrap();
+
+    let amount = spent_output.value.to_signed().unwrap().to_sat();
+    let script =
+        bitcoinkernel::ScriptPubkey::try_from(spent_output.script_pubkey.as_bytes()).unwrap();
     let actual_outputs = [bitcoinkernel::TxOut::new(&script, amount)];
 
     let verify_result = bitcoinkernel::verify(
-        &bitcoinkernel::ScriptPubkey::try_from(actual_address.script_pubkey().as_bytes()).unwrap(),
-        Some(value.to_sat().try_into().unwrap()),
+        &bitcoinkernel::ScriptPubkey::try_from(spent_output.script_pubkey.as_bytes()).unwrap(),
+        Some(amount),
         &bitcoinkernel::Transaction::try_from(serialize(&actual_tx).as_slice()).unwrap(),
         0,
         None,

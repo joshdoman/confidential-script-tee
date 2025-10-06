@@ -640,6 +640,7 @@ dependencies = [
  "hex-conservative",
  "hex_lit",
  "secp256k1",
+ "serde",
 ]
 
 [[package]]
@@ -647,6 +648,9 @@ name = "bitcoin-internals"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30bdbe14aa07b06e6cfeffc529a1f099e5fbe249524f8125358604df99a4bed2"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bitcoin-io"
@@ -661,6 +665,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5285c8bcaa25876d07f37e3d30c303f2609179716e11d688f51e8f1fe70063e2"
 dependencies = [
  "bitcoin-internals",
+ "serde",
 ]
 
 [[package]]
@@ -671,13 +676,14 @@ checksum = "bb18c03d0db0247e147a21a6faafd5a7eb851c743db062de72018b6b7e8e4d16"
 dependencies = [
  "bitcoin-io",
  "hex-conservative",
+ "serde",
 ]
 
 [[package]]
 name = "bitcoinkernel"
-version = "0.0.22"
+version = "0.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "490df0bc5e775bbd3da26d064239d9ff7b94426106294fdea543a0cfe1561ce4"
+checksum = "6a682fd5bdd4ca6cbd6090e6c014d6a180509e4a4ae30e044e3625cef588005e"
 dependencies = [
  "libbitcoinkernel-sys",
 ]
@@ -829,12 +835,11 @@ dependencies = [
 
 [[package]]
 name = "confidential-script-lib"
-version = "0.2.2"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7ecba76fb767a2a048e658b00e073edb5822964cdce75ae59c68d283e720342"
+checksum = "8c02be01cc56278390f9bd88b58c5fd88569b314100f1fbb6d2ad21c9c197dd8"
 dependencies = [
  "bitcoin",
- "bitcoin-units",
  "hmac",
  "num-bigint",
  "sha2",
@@ -1659,9 +1664,9 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "libbitcoinkernel-sys"
-version = "0.0.21"
+version = "0.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b61dba860fb10b86ccf19f433e125d3da6c84a2b78c3dd0b25ac037e62cb361c"
+checksum = "0bdc51625a5644edf6c31030cd1b35fe4612af65680bcf8ca2ff830c40bcf29d"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -2417,6 +2422,7 @@ checksum = "9465315bc9d4566e1724f0fffcbcc446268cb522e60f9a27bcded6b19c108113"
 dependencies = [
  "bitcoin_hashes",
  "secp256k1-sys",
+ "serde",
 ]
 
 [[package]]

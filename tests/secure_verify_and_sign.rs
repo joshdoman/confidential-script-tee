@@ -12,8 +12,7 @@ async fn secure_verify_and_sign() {
     let state = setup_app_state(true);
     let addr = spawn_app(state.clone()).await;
 
-    let (request_payload, value, actual_address) =
-        create_verify_and_sign_single_input_single_leaf_request();
+    let (request_payload, spent_output) = create_verify_and_sign_single_input_single_leaf_request();
 
     // Create client private key
     let secp = Secp256k1::new();
@@ -48,5 +47,5 @@ async fn secure_verify_and_sign() {
     let decrypted_response = decrypt_data(&encrypted_response, &shared_secret).unwrap();
     let response_body: VerifyAndSignResponse = serde_json::from_slice(&decrypted_response).unwrap();
 
-    validate_single_input_single_leaf_response(response_body, value, actual_address);
+    validate_single_input_single_leaf_response(response_body, spent_output);
 }
