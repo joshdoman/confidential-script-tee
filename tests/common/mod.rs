@@ -1,4 +1,4 @@
-use axum::{middleware, routing::post, Router};
+use axum::{extract::DefaultBodyLimit, middleware, routing::post, Router};
 use bitcoin::{
     consensus::{deserialize, encode::serialize},
     key::UntweakedPublicKey,
@@ -13,7 +13,7 @@ use confidential_script::{
         encryption_middleware::encryption_middleware, verify_and_sign_handler,
         VerifyAndSignRequest, VerifyAndSignResponse,
     },
-    AppState,
+    AppState, MAX_PAYLOAD_SIZE,
 };
 use std::collections::HashMap;
 use std::{net::SocketAddr, sync::Arc};
@@ -56,13 +56,18 @@ pub fn setup_app_state_with_settings(with_key: bool, settings: Option<Settings>)
 
 pub async fn spawn_app(app_state: Arc<AppState>) -> SocketAddr {
     let app = Router::new()
-        .route("/verify-and-sign", post(verify_and_sign_handler))
+        .route(
+            "/verify-and-sign",
+            post(verify_and_sign_handler).layer(DefaultBodyLimit::max(MAX_PAYLOAD_SIZE)),
+        )
         .route(
             "/secure/verify-and-sign",
-            post(verify_and_sign_handler).layer(middleware::from_fn_with_state(
-                app_state.clone(),
-                encryption_middleware,
-            )),
+            post(verify_and_sign_handler)
+                .layer(DefaultBodyLimit::max(MAX_PAYLOAD_SIZE))
+                .layer(middleware::from_fn_with_state(
+                    app_state.clone(),
+                    encryption_middleware,
+                )),
         )
         .with_state(app_state);
 

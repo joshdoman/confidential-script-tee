@@ -1,5 +1,6 @@
 use anyhow::Result;
 use axum::{
+    extract::DefaultBodyLimit,
     middleware,
     routing::{get, post},
     Router,
@@ -16,6 +17,9 @@ use api::{
     setup_handler, verify_and_sign_handler,
 };
 use settings::Settings;
+
+// The payload size limit (4 MB)
+pub const MAX_PAYLOAD_SIZE: usize = 4 * 1024 * 1024;
 
 pub struct AppState {
     pub settings: Arc<OnceCell<Settings>>,
@@ -36,13 +40,18 @@ pub async fn run() -> Result<()> {
     let app = Router::new()
         .route("/setup", post(setup_handler))
         .route("/public-key", get(get_public_key_handler))
-        .route("/verify-and-sign", post(verify_and_sign_handler))
+        .route(
+            "/verify-and-sign",
+            post(verify_and_sign_handler).layer(DefaultBodyLimit::max(MAX_PAYLOAD_SIZE)),
+        )
         .route(
             "/secure/verify-and-sign",
-            post(verify_and_sign_handler).route_layer(middleware::from_fn_with_state(
-                app_state.clone(),
-                encryption_middleware,
-            )),
+            post(verify_and_sign_handler)
+                .layer(DefaultBodyLimit::max(MAX_PAYLOAD_SIZE))
+                .route_layer(middleware::from_fn_with_state(
+                    app_state.clone(),
+                    encryption_middleware,
+                )),
         )
         .route("/settings", get(get_settings_handler))
         .route("/health", get(health_handler))
