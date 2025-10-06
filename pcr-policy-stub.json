@@ -1,5 +1,5 @@
 {
-    "Sid": "Allow public use of the key for demo (git SHORT_SHA)",
+    "Sid": "Allow public use of the key by any account running the enclave",
     "Effect": "Allow",
     "Principal": {
         "AWS": "*"
