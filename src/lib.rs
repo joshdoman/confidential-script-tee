@@ -5,7 +5,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use bitcoin::secp256k1::SecretKey;
+use bitcoin::secp256k1::{PublicKey, SecretKey};
 use std::{env, net::SocketAddr, sync::Arc};
 use tokio::sync::OnceCell;
 
@@ -23,7 +23,7 @@ pub const MAX_PAYLOAD_SIZE: usize = 4 * 1024 * 1024;
 
 pub struct AppState {
     pub settings: Arc<OnceCell<Settings>>,
-    pub master_key_pair: Arc<OnceCell<(SecretKey, Vec<u8>)>>,
+    pub master_key_pair: Arc<OnceCell<(SecretKey, PublicKey)>>,
 }
 
 pub async fn run() -> Result<()> {

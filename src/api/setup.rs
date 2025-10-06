@@ -114,12 +114,11 @@ pub async fn setup_handler(
 
     let secp = Secp256k1::new();
     let secp256k1_public_key = Secp256k1PublicKey::from_secret_key(&secp, &secp256k1_secret_key);
-    let serialized_public_key = secp256k1_public_key.serialize_uncompressed().to_vec();
 
     // Atomically store the resulting secp256k1 key pair.
     if state
         .master_key_pair
-        .set((secp256k1_secret_key, serialized_public_key))
+        .set((secp256k1_secret_key, secp256k1_public_key))
         .is_err()
     {
         return (StatusCode::CONFLICT, "Secret has already been generated.").into_response();

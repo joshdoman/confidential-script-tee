@@ -44,7 +44,7 @@ async fn verify_and_sign_no_secret() {
     assert_eq!(res.status(), reqwest::StatusCode::BAD_REQUEST);
     assert_eq!(
         res.text().await.unwrap(),
-        "Secret not found. Please generate it first."
+        "Secret not found. Make sure to call `/setup` first."
     );
 }
 

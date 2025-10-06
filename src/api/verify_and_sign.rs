@@ -75,7 +75,7 @@ pub async fn verify_and_sign_handler(
         None => {
             return (
                 StatusCode::BAD_REQUEST,
-                "Secret not found. Please generate it first.",
+                "Secret not found. Make sure to call `/setup` first.",
             )
                 .into_response();
         }

@@ -35,10 +35,8 @@ pub fn setup_app_state_with_settings(with_key: bool, settings: Option<Settings>)
     let master_key_pair = Arc::new(OnceCell::new());
 
     if with_key {
-        let (secret_key, public_key) = create_master_key_pair();
-        let serialized_public_key = public_key.serialize_uncompressed().to_vec();
         master_key_pair
-            .set((secret_key, serialized_public_key))
+            .set(create_master_key_pair())
             .unwrap();
     }
 
