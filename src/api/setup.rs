@@ -6,6 +6,7 @@ use axum::{
     response::{IntoResponse, Json as AxumJson},
 };
 use bitcoin::secp256k1::{PublicKey as Secp256k1PublicKey, Secp256k1, SecretKey};
+use hkdf::Hkdf;
 use p256::{pkcs8::EncodePublicKey, PublicKey as P256PublicKey};
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
@@ -81,20 +82,27 @@ pub async fn setup_handler(
         }
     };
 
-    let mut secret_bytes = match shared_secret_output.shared_secret {
+    let shared_secret = match shared_secret_output.shared_secret {
         Some(blob) => blob.into_inner(),
         None => {
             return (StatusCode::INTERNAL_SERVER_ERROR, "KMS returned no secret.").into_response()
         }
     };
 
-    if secret_bytes.len() != 32 {
+    if shared_secret.len() != 32 {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Invalid secret length from KMS.",
         )
             .into_response();
     }
+
+    // Apply HKDF to shared secret to derive secret bytes
+    let mut secret_bytes = [0u8; 32];
+    let salt = Some(b"confidential-script-salt".as_slice());
+    let (_, hkdf) = Hkdf::<Sha256>::extract(salt, &shared_secret);
+    hkdf.expand(b"confidential-script-setup", &mut secret_bytes)
+        .expect("32-byte shared secret is a valid length for HKDF-SHA256");
 
     // Now, deterministically convert the 32-byte secret into a valid secp256k1 SecretKey.
     let secp256k1_secret_key = loop {
