@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json as AxumJson},
 };
-use bitcoin::{ScriptBuf, TxOut, Weight, consensus};
+use bitcoin::{ScriptBuf, Transaction, TxOut, Weight};
 use confidential_script_lib::{Error, Verifier, verify_and_sign};
 use confidential_script_wire::{VerifyAndSignRequest, VerifyAndSignResponse};
 use rand::RngCore;
@@ -18,7 +18,7 @@ impl Verifier for KernelVerifier {
     fn verify(
         &self,
         script_pubkeys: &HashMap<usize, ScriptBuf>,
-        tx_to: &[u8],
+        tx_to: &Transaction,
         spent_outputs: &[TxOut],
     ) -> Result<(), Error> {
         let mut amounts = Vec::new();
@@ -36,7 +36,8 @@ impl Verifier for KernelVerifier {
             outputs.push(bitcoinkernel::TxOut::new(&script, amount));
         }
 
-        let tx_to = &bitcoinkernel::Transaction::try_from(tx_to)
+        let tx_bytes = bitcoin::consensus::serialize(tx_to);
+        let tx_to = &bitcoinkernel::Transaction::try_from(tx_bytes.as_slice())
             .map_err(|e| Error::VerificationFailed(e.to_string()))?;
 
         for (&i, script_pubkey) in script_pubkeys {
@@ -87,7 +88,7 @@ pub async fn verify_and_sign_handler(
     // Call verify_and_sign
     let signed_tx = match verify_and_sign(
         &KernelVerifier,
-        &consensus::serialize(&payload.emulated_tx_to),
+        &payload.emulated_tx_to,
         &payload.actual_spent_outputs,
         &aux_rand,
         secret_key,

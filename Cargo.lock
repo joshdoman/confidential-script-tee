@@ -834,9 +834,9 @@ dependencies = [
 
 [[package]]
 name = "confidential-script-lib"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c02be01cc56278390f9bd88b58c5fd88569b314100f1fbb6d2ad21c9c197dd8"
+checksum = "741243b323e23a4b1f024e41be61c8010cb93b6999123559913dad67f4f9de93"
 dependencies = [
  "bitcoin",
  "hmac",
