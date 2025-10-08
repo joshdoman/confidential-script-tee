@@ -6,7 +6,7 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
     enclaver = {
-      url = "github:joshdoman/enclaver";
+      url = "github:joshdoman/enclaver/0b1a0209d43c2c9ae63ce180158396347efcf7e5";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
