@@ -60,7 +60,7 @@ pub async fn verify_and_sign_handler(
 ) -> impl IntoResponse {
     // Check if ephemeral key pair exists
     let (secret_key, _) = match state.master_key_pair.get() {
-        Some(key_pair) => key_pair.clone(),
+        Some(key_pair) => *key_pair,
         None => {
             return (
                 StatusCode::BAD_REQUEST,
