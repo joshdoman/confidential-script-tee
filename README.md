@@ -52,13 +52,13 @@ Read the [architecture docs](docs/architecture.md) for details.
             <OUTPUT0_HEX>,
             <OUTPUT1_HEX>,
             ...
-            <OUTPUT1_HEX>,
-        },
-        "backup_merkle_root": {
-            "INDEX_0": <OPTIONAL_MERKLE_ROOT_0>,
-            "INDEX_1": <OPTIONAL_MERKLE_ROOT_1>,
+            <OUTPUTN_HEX>,
+        ],
+        "backup_merkle_roots": {
+            "0": <OPTIONAL_MERKLE_ROOT_FOR_INPUT_0>,
+            "1": <OPTIONAL_MERKLE_ROOT_FOR_INPUT_1>,
             ...
-            "INDEX_N": <OPTIONAL_MERKLE_ROOT_N>,
+            "N": <OPTIONAL_MERKLE_ROOT_FOR_INPUT_N>,
         }
       }'
     ```
