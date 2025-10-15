@@ -2,7 +2,7 @@ UNDER CONSTRUCTION, DO NOT USE
 
 # Confidential Script TEE
 
-This projects implements a Trusted Execution Environment (TEE) around `confidential-script-lib`, with a secure, reproducible, and permissionlessly provisioned master private key.
+This projects implements a Trusted Execution Environment (TEE) around [`confidential-script-lib`](https://github.com/joshdoman/confidential-script-lib), with a secure, reproducible, and permissionlessly provisioned master private key.
 
 AWS's Nitro Enclave is currently the only supported TEE. Users first create a KMS key, which provably can only be accessed by an enclave running Confidential Script. By creating an un-deletable KMS key with cross-account access, emulation can be made nearly permissionless.
 
@@ -12,15 +12,15 @@ Builds are made reproducible using Nix, and a nix-compatible fork of `enclaver` 
 
 Confidential Script facilitates secure, reproducible, and stateless emulation of Bitcoin script.
 
-Under the hood, `confidential-script-lib` emulates Bitcoin script by converting valid script-path spends to key-path spends using Taproot. The enclave validates the unlocking conditions and then replaces the witness with a signature that authorizes the transaction, using a deterministically derived private key that only the enclave can access.
+Under the hood, [`confidential-script-lib`](https://github.com/joshdoman/confidential-script-lib) emulates Bitcoin script by converting valid script-path spends to key-path spends using Taproot. The enclave validates the unlocking conditions and then replaces the witness with a signature that authorizes the transaction, using a deterministically derived private key that only the enclave can access.
 
 This approach enables confidential execution of complex script, including opcodes not yet supported by the Bitcoin protocol. The actual on-chain footprint is a minimal key-path spend, preserving privacy and efficiency.
 
-For more details on how emulation works, see `confidential-script-lib`.
+For more details on how emulation works, see [`confidential-script-lib`](https://github.com/joshdoman/confidential-script-lib).
 
 ## Architecture
 
-Read the (architecture docs)[docs/architecture.md] for details.
+Read the [architecture docs](docs/architecture.md) for details.
 
 ## Usage
 
@@ -40,19 +40,24 @@ Read the (architecture docs)[docs/architecture.md] for details.
     ```bash
     curl http://localhost:8000/public-key
     ```
-6. **Emulate** your transaction. Use `secure/verify-and-sign` to encrypt requests into and out of the enclave. 
+6. **Emulate** your transaction. Use `secure/verify-and-sign` to encrypt requests into and out of the enclave.
     ```bash
     curl -X POST http://localhost:8000/verify-and-sign \
       -H "Content-Type: application/json" \
       -d '{
-        "input_index": <INPUT_INDEX>,
         "emulated_tx_to": <TRANSACTION_HEX>,
         "actual_spent_outputs": [
-          <OUTPUT0_HEX>,
-          <OUTPUT1_HEX>,
-          etc.
+            <OUTPUT0_HEX>,
+            <OUTPUT1_HEX>,
+            ...
+            <OUTPUT1_HEX>,
         },
-        "backup_merkle_root": <OPTIONAL_MERKLE_ROOT>,
+        "backup_merkle_root": {
+            "INDEX_0": <OPTIONAL_MERKLE_ROOT_0>,
+            "INDEX_1": <OPTIONAL_MERKLE_ROOT_1>,
+            ...
+            "INDEX_N": <OPTIONAL_MERKLE_ROOT_N>,
+        }
       }'
     ```
 
