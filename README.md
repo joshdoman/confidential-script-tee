@@ -1,12 +1,14 @@
 UNDER CONSTRUCTION, DO NOT USE
 
+(Documentation is a work-in-progress)
+
 # Confidential Script TEE
 
 This projects implements a Trusted Execution Environment (TEE) around [`confidential-script-lib`](https://github.com/joshdoman/confidential-script-lib), with a secure, reproducible, and permissionlessly provisioned master private key.
 
 AWS's Nitro Enclave is currently the only supported TEE. Users first create a KMS key, which provably can only be accessed by an enclave running Confidential Script. By creating an un-deletable KMS key with cross-account access, emulation can be made nearly permissionless.
 
-Builds are made reproducible using Nix, and a nix-compatible fork of `enclaver` is used to produce a proxy architecture for communication into and out of the enclave. You can learn more about this architecture here.
+Builds are made reproducible using Nix and [`nix-enclaver`](https://github.com/joshdoman/nix-enclaver), a nix-compatible fork of [`enclaver`](https://github.com/enclaver-io/enclaver) that produces a proxy architecture for communication into and out of the enclave.
 
 ## What is Confidential Script?
 
@@ -25,8 +27,8 @@ Read the [architecture docs](docs/architecture.md) for details.
 ## Usage
 
 1.  **Build** the EIF file with Nix using `nix build`. To target a non-native architecture, use `nix build .x86_64-eif` or `nix build .aarch64-eif`.
-2.  **Deploy** the EIF to a Nitro-enabled EC2 instance and run it using `enclaver-run`.
-3.  **Configure** an AWS KMS key with a policy that allows your enclave's `PCR0` hash to call `kms:DeriveSharedSecret`.
+2.  **Deploy** the EIF to a Nitro-enabled EC2 instance and run it using [`nix-enclaver`](https://github.com/joshdoman/nix-enclaver).
+3.  **Configure** an AWS KMS key with a PCR0 policy that exclusively allows your enclave to call `kms:DeriveSharedSecret` (see [`pcr-policy-stub.json`](https://github.com/joshdoman/confidential-script-tee/blob/main/pcr-policy-stub.json)).
 4.  **Setup** the enclave with the KMS key id and a Bitcoin blockhash, which timestamps the creation of the enclave's master private key.
     ```bash
     curl -X POST http://localhost:8000/setup \
