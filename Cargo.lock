@@ -680,12 +680,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitcoinkernel"
+name = "bitcoinkernel-covenants"
 version = "0.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a682fd5bdd4ca6cbd6090e6c014d6a180509e4a4ae30e044e3625cef588005e"
+checksum = "f37f4279ddba65f3afe3692c5a046c760231136e1268c4fd04711700e41e5474"
 dependencies = [
- "libbitcoinkernel-sys",
+ "libbitcoinkernel-sys-covenants",
 ]
 
 [[package]]
@@ -816,7 +816,7 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "bitcoin",
- "bitcoinkernel",
+ "bitcoinkernel-covenants",
  "confidential-script-lib",
  "confidential-script-wire",
  "hex",
@@ -1674,10 +1674,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
-name = "libbitcoinkernel-sys"
+name = "libbitcoinkernel-sys-covenants"
 version = "0.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bdc51625a5644edf6c31030cd1b35fe4612af65680bcf8ca2ff830c40bcf29d"
+checksum = "1fdad2bcc5280c2531bb69d27af8f5d8fe296c235af0f0b0b09c718b15701298"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
