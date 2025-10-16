@@ -4,10 +4,12 @@ use axum::{
     response::{IntoResponse, Json as AxumJson},
 };
 use bitcoin::{ScriptBuf, Transaction, TxOut, Weight};
+use bitcoinkernel_covenants as bitcoinkernel;
 use confidential_script_lib::{Error, Verifier, verify_and_sign};
 use confidential_script_wire::{VerifyAndSignRequest, VerifyAndSignResponse};
 use rand::RngCore;
 use std::collections::HashMap;
+use std::num::TryFromIntError;
 use std::sync::Arc;
 
 use crate::AppState;
@@ -44,8 +46,11 @@ impl Verifier for KernelVerifier {
             let amount = amounts.get(i).cloned();
             let script_pubkey = &bitcoinkernel::ScriptPubkey::try_from(script_pubkey.as_bytes())
                 .map_err(|e| Error::VerificationFailed(e.to_string()))?;
+            let index: u32 = i
+                .try_into()
+                .map_err(|e: TryFromIntError| Error::VerificationFailed(e.to_string()))?;
 
-            bitcoinkernel::verify(script_pubkey, amount, tx_to, i, None, &outputs)
+            bitcoinkernel::verify(script_pubkey, amount, tx_to, index, None, &outputs)
                 .map_err(|e| Error::VerificationFailed(e.to_string()))?;
         }
 

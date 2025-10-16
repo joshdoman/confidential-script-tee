@@ -7,6 +7,7 @@ use bitcoin::{
     secp256k1::{PublicKey, Secp256k1, SecretKey},
     taproot::{LeafVersion, TaprootBuilder},
 };
+use bitcoinkernel_covenants as bitcoinkernel;
 use confidential_script::{
     AppState, MAX_PAYLOAD_SIZE,
     api::{encryption_middleware::encryption_middleware, verify_and_sign_handler},
